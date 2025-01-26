@@ -18,7 +18,9 @@
 #include "fb_gfx.h"
 #include "esp32-hal-ledc.h"
 #include "sdkconfig.h"
-#include "camera_index.h"
+#include "index_ov2640_html_gz.h"
+#include "index_ov3660_html_gz.h"
+#include "index_ov5640_html_gz.h"
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
