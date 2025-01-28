@@ -1,5 +1,7 @@
 #include "esp_camera.h"
 #include <WiFi.h>
+#include "freertos/event_groups.h"
+#include "DHT.h"
 
 //
 // WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
@@ -31,6 +33,7 @@
 //#define CAMERA_MODEL_DFRobot_FireBeetle2_ESP32S3 // Has PSRAM
 //#define CAMERA_MODEL_DFRobot_Romeo_ESP32S3 // Has PSRAM
 #include "camera_pins.h"
+#include "config.h"
 
 /******************************************************************* 
 ******* SYSTEM CONFIGURATIONS ************************************** 
@@ -44,6 +47,14 @@ const char* password = "SET_YOUR_WIFI_PASSWORD_HERE";
 ******* GLOBALS **************************************************** 
 *******************************************************************/
 
+hw_timer_t *g_temp_hum_read_timer = NULL;
+EventGroupHandle_t g_event_group;
+EventBits_t g_event_bits;
+const int got_temp = BIT0;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+String status;
 
 /******************************************************************* 
 ******* STATIC FUNCTIONS ******************************************* 
@@ -53,8 +64,16 @@ static void startCameraServer();
 static void setupLedFlash(int pin);
 static void esp32_cam_get_config(camera_config_t *config);
 static void esp32_cam_get_config(camera_config_t *config);
+
 static esp_err_t setup_camera();
 static esp_err_t setup_camera_sensor();
+static void setup_external_sensors();
+static void temperature_sensor_setup();
+
+static String check_room_conditions(void);
+static void print_alert_notification(String msg);
+
+static void IRAM_ATTR read_temp_hum_isr();
 
 /******************************************************************* 
 ******* FUNCTIONS ************************************************** 
@@ -91,11 +110,32 @@ void setup() {
                 Serial.print(WiFi.localIP());
                 Serial.println("' to connect");
         }
+
+        if (err == ESP_OK) {
+              g_event_group = xEventGroupCreate();
+              configASSERT(g_event_group);
+        }
+
+        if (err == ESP_OK)
+                setup_external_sensors();
+
 }
 
 void loop() 
 {
+        /* collect sensor data and decide what to do */
+        g_event_bits = xEventGroupWaitBits(
+                g_event_group,   /* The event group being tested. */
+                BIT0, /* The bits within the event group to wait for. */
+                pdTRUE,        /* BITs should be cleared before returning. */
+                pdFALSE,       /* Don't wait for both bits, either bit will do. */
+                portMAX_DELAY);/* block */
 
+        if (g_event_bits & got_temp) {
+                status = check_room_conditions();
+                if (status != "room conditions ok")
+                        print_alert_notification(status);
+        }
 }
 
 /*******************************************************************************
@@ -190,3 +230,83 @@ static esp_err_t setup_camera_sensor()
 
         return ESP_OK;
 }
+
+/*******************************************************************************
+******** Setup helper function *************************************************
+********************************************************************************/
+
+static void setup_external_sensors()
+{
+        //configure temoerature/humidity temperature
+        temperature_sensor_setup();
+}
+
+static void temperature_sensor_setup()
+{
+        /* start temp-humd sensor */
+        dht.begin();
+        dht.readTemperature();
+        dht.readHumidity();
+
+         //timer interrupt to read temperature every 60s
+        g_temp_hum_read_timer = timerBegin(0, 80, true);
+        timerAttachInterrupt(g_temp_hum_read_timer, &read_temp_hum_isr, true);
+        timerAlarmWrite(g_temp_hum_read_timer, TEMP_READ_PERIOD_S * 1000000, true);
+        timerAlarmEnable(g_temp_hum_read_timer);
+}
+
+static String check_room_conditions(void)
+{
+        int temp;
+        int humd;
+        String ret = "room conditions ok";
+
+        temp = dht.readTemperature();
+        humd = dht.readHumidity();
+        if (temp > TEMP_UPPER_LIMIT) {
+                ret = "Status: Temperature(";
+                ret += String(temp);
+                ret +="C): Room is too hot \n";
+        } else if (temp < TEMP_LOWER_LIMIT) {
+                ret = "Status: Temperature(";
+                ret += String(temp);
+                ret +="C): Room is too cold \n";
+        }
+
+        if (humd > HUMD_UPPER_LIMIT) {
+                ret = "Status: Humidity(";
+                ret += String(humd);
+                ret += "%): Level is too high \n";
+        } else if (humd < HUMD_LOWER_LIMIT) {
+                ret = "Status: Humidity(";
+                ret += String(humd);
+                ret += "%): Level is too low \n";
+        }
+        return ret;
+}
+
+static void print_alert_notification(String msg)
+{
+    Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
+}
+
+/*******************************************************************************
+******** GPIO ISRs *************************************************************
+********************************************************************************/
+
+void IRAM_ATTR read_temp_hum_isr() 
+{
+        BaseType_t res;
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+        /* set event group bit to notify monitor task */
+        res = xEventGroupSetBitsFromISR(g_event_group, got_temp, &xHigherPriorityTaskWoken );
+
+        /* Was the message posted successfully? */
+        if( res != pdFAIL )
+                /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context
+                switch should be requested. The macro used is port specific and will
+                be either portYIELD_FROM_ISR() or portEND_SWITCHING_ISR() - refer to
+                the documentation page for the port being used. */
+                portYIELD_FROM_ISR( xHigherPriorityTaskWoken );      
+};

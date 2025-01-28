@@ -4,8 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [1.0.1] - 2023-10-01
+## [1.0.1]
 ### Added
+- Add support of room temperature/humidity monitoring as part of baby alert system 
 ### Changed
 ### Fixed
 
