@@ -6,4 +6,6 @@
 #define TEMP_READ_PERIOD_S        1 * 60
 #define DHTTYPE                   DHT11   // DHT 11
 #define DHTPIN                    13     // Pin where the DHT11 is connected
+
+#define SOUND_MONITOR_PIN         32
 #endif

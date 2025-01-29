@@ -51,6 +51,7 @@ hw_timer_t *g_temp_hum_read_timer = NULL;
 EventGroupHandle_t g_event_group;
 EventBits_t g_event_bits;
 const int got_temp = BIT0;
+const int got_sound = BIT1;
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -74,6 +75,7 @@ static String check_room_conditions(void);
 static void print_alert_notification(String msg);
 
 static void IRAM_ATTR read_temp_hum_isr();
+void IRAM_ATTR sound_monitor_isr();
 
 /******************************************************************* 
 ******* FUNCTIONS ************************************************** 
@@ -123,10 +125,12 @@ void setup() {
 
 void loop() 
 {
+        String msg;
+        
         /* collect sensor data and decide what to do */
         g_event_bits = xEventGroupWaitBits(
                 g_event_group,   /* The event group being tested. */
-                BIT0, /* The bits within the event group to wait for. */
+                BIT0 | BIT1, /* The bits within the event group to wait for. */
                 pdTRUE,        /* BITs should be cleared before returning. */
                 pdFALSE,       /* Don't wait for both bits, either bit will do. */
                 portMAX_DELAY);/* block */
@@ -135,6 +139,8 @@ void loop()
                 status = check_room_conditions();
                 if (status != "room conditions ok")
                         print_alert_notification(status);
+        } else  if (g_event_bits & got_sound) {
+                print_alert_notification("Status: AWAKE \n");
         }
 }
 
@@ -239,6 +245,8 @@ static void setup_external_sensors()
 {
         //configure temoerature/humidity temperature
         temperature_sensor_setup();
+        //configure sound sensor
+        sound_detector_enable();
 }
 
 static void temperature_sensor_setup()
@@ -253,6 +261,17 @@ static void temperature_sensor_setup()
         timerAttachInterrupt(g_temp_hum_read_timer, &read_temp_hum_isr, true);
         timerAlarmWrite(g_temp_hum_read_timer, TEMP_READ_PERIOD_S * 1000000, true);
         timerAlarmEnable(g_temp_hum_read_timer);
+}
+
+static void sound_detector_enable()
+{
+        pinMode(SOUND_MONITOR_PIN, INPUT);
+        attachInterrupt(SOUND_MONITOR_PIN, sound_monitor_isr, FALLING);
+}
+
+static void sound_detector_disable()
+{
+        detachInterrupt(SOUND_MONITOR_PIN);
 }
 
 static String check_room_conditions(void)
@@ -309,4 +328,22 @@ void IRAM_ATTR read_temp_hum_isr()
                 be either portYIELD_FROM_ISR() or portEND_SWITCHING_ISR() - refer to
                 the documentation page for the port being used. */
                 portYIELD_FROM_ISR( xHigherPriorityTaskWoken );      
+};
+
+void IRAM_ATTR sound_monitor_isr() {
+        BaseType_t res;
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+        /* set event group bit to notify monitor loop */
+        sound_detector_disable();
+        res = xEventGroupSetBitsFromISR(g_event_group, got_sound, &xHigherPriorityTaskWoken );
+
+        /* Was the message posted successfully? */
+        if( res != pdFAIL )
+                /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context
+                switch should be requested. The macro used is port specific and will
+                be either portYIELD_FROM_ISR() or portEND_SWITCHING_ISR() - refer to
+                the documentation page for the port being used. */
+                portYIELD_FROM_ISR( xHigherPriorityTaskWoken );        
+        
 };
