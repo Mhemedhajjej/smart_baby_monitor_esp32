@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
         <title>ESP32 OV2460</title>
         <style>
             body {
@@ -495,6 +496,7 @@
                         <section id="buttons">
                             <button id="get-still"><i class="fa fa-camera"></i></button>
                             <button id="toggle-stream"><i class="fa fa-eye-slash"></i></button>
+                            <button id="baby-icon-button"><i class="fas fa-baby"></i></button>
                         </section>
 
                         <div style="margin-top: 8px;"><center><span style="font-weight: bold;">Advanced Settings</span></center></div>
@@ -900,6 +902,7 @@ document.addEventListener('DOMContentLoaded', function (event) {
   const closeButton = document.getElementById('close-stream')
   const saveButton = document.getElementById('save-still')
   const ledGroup = document.getElementById('led-group')
+  const babyButton = document.getElementById('baby-icon-button')
 
   const stopStream = () => {
     const icon = streamButton.querySelector('i');
@@ -936,6 +939,10 @@ document.addEventListener('DOMContentLoaded', function (event) {
       stopStream()
       hide(viewContainer)
     }
+  }
+
+  babyButton.onclick = () => {
+    view.src = `${baseHost}/baby?_cb=${Date.now()}`
   }
 
   enrollButton.onclick = () => {

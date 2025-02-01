@@ -50,8 +50,6 @@ const char* password = "SET_YOUR_WIFI_PASSWORD_HERE";
 hw_timer_t *g_temp_hum_read_timer = NULL;
 EventGroupHandle_t g_event_group;
 EventBits_t g_event_bits;
-const int got_temp = BIT0;
-const int got_sound = BIT1;
 
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -125,12 +123,10 @@ void setup() {
 
 void loop() 
 {
-        String msg;
-        
         /* collect sensor data and decide what to do */
         g_event_bits = xEventGroupWaitBits(
                 g_event_group,   /* The event group being tested. */
-                BIT0 | BIT1, /* The bits within the event group to wait for. */
+                BIT0 | BIT1 | BIT2, /* The bits within the event group to wait for. */
                 pdTRUE,        /* BITs should be cleared before returning. */
                 pdFALSE,       /* Don't wait for both bits, either bit will do. */
                 portMAX_DELAY);/* block */
@@ -141,6 +137,9 @@ void loop()
                         print_alert_notification(status);
         } else  if (g_event_bits & got_sound) {
                 print_alert_notification("Status: AWAKE \n");
+        } else if (g_event_bits & got_no_motion) {
+                        Serial.println("mon left the range & baby is happy");
+                        sound_detector_enable();
         }
 }
 

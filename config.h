@@ -1,3 +1,7 @@
+const int got_temp = BIT0;
+const int got_sound = BIT1;
+const int got_baby_happy = BIT2;
+
 #if defined(CAMERA_MODEL_WROVER_KIT)
 #define TEMP_UPPER_LIMIT          22
 #define TEMP_LOWER_LIMIT          16

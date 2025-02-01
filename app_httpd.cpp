@@ -1170,6 +1170,16 @@ static esp_err_t index_handler(httpd_req_t *req)
     }
 }
 
+static esp_err_t baby_handler(httpd_req_t *req)
+{
+    EventGroupHandle_t *event_group = get_event_group();
+    log_i("mom notifies baby is happy please renable monitor");
+
+    xEventGroupSetBits(*event_group, got_baby_happy);
+
+    return ESP_OK;
+}
+
 void startCameraServer()
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -1317,6 +1327,18 @@ void startCameraServer()
         .supported_subprotocol = NULL
 #endif
     };
+    httpd_uri_t baby_uri = {
+        .uri = "/baby",
+        .method = HTTP_GET,
+        .handler = baby_handler,
+        .user_ctx = NULL
+#ifdef CONFIG_HTTPD_WS_SUPPORT
+        ,
+        .is_websocket = true,
+        .handle_ws_control_frames = false,
+        .supported_subprotocol = NULL
+#endif
+    };
 
     ra_filter_init(&ra_filter, 20);
 
@@ -1340,6 +1362,7 @@ void startCameraServer()
         httpd_register_uri_handler(camera_httpd, &greg_uri);
         httpd_register_uri_handler(camera_httpd, &pll_uri);
         httpd_register_uri_handler(camera_httpd, &win_uri);
+        httpd_register_uri_handler(camera_httpd, &baby_uri);
     }
 
     config.server_port += 1;
