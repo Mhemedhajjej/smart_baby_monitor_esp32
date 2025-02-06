@@ -76,6 +76,12 @@ static void IRAM_ATTR read_temp_hum_isr();
 void IRAM_ATTR sound_monitor_isr();
 
 /******************************************************************* 
+******* EXTERN FUNCTIONS ******************************************* 
+*******************************************************************/
+
+extern esp_err_t send_ws_message(const char *message);
+
+/******************************************************************* 
 ******* FUNCTIONS ************************************************** 
 *******************************************************************/
 
@@ -137,10 +143,16 @@ void loop()
                         print_alert_notification(status);
         } else  if (g_event_bits & got_sound) {
                 print_alert_notification("Status: AWAKE \n");
-        } else if (g_event_bits & got_no_motion) {
-                        Serial.println("mon left the range & baby is happy");
-                        sound_detector_enable();
+        } else if (g_event_bits & got_baby_happy) {
+                Serial.println("mon left the range & baby is happy");
+                sound_detector_enable();
+                send_ws_message("normal");
         }
+}
+
+EventGroupHandle_t *get_event_group(void)
+{
+    return &g_event_group;
 }
 
 /*******************************************************************************
@@ -306,6 +318,7 @@ static String check_room_conditions(void)
 static void print_alert_notification(String msg)
 {
     Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
+    send_ws_message("alert");
 }
 
 /*******************************************************************************

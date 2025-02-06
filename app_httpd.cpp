@@ -21,6 +21,8 @@
 #include "index_ov2640_html_gz.h"
 #include "index_ov3660_html_gz.h"
 #include "index_ov5640_html_gz.h"
+#include "freertos/event_groups.h"
+#include "config.h"
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
@@ -1170,14 +1172,88 @@ static esp_err_t index_handler(httpd_req_t *req)
     }
 }
 
-static esp_err_t baby_handler(httpd_req_t *req)
+esp_err_t send_ws_message(const char *message) {
+        static constexpr size_t max_clients = CONFIG_LWIP_MAX_LISTENING_TCP;
+        size_t fds = max_clients;
+        int client_fds[max_clients] = {0};
+        httpd_ws_frame_t ws_pkt = {
+                .type = HTTPD_WS_TYPE_TEXT,
+                .payload = (uint8_t *)message,
+                .len = strlen(message),
+        };
+        esp_err_t ret
+
+        if (camera_httpd == NULL) return -ESP_FAIL;
+
+        ret = httpd_get_client_list(camera_httpd, &fds, client_fds);
+
+        if (ret != ESP_OK)
+                return ret;
+
+        log_i("clients %d", fds);
+        for (int i = 0; i < fds; i++) {
+                auto client_info = httpd_ws_get_fd_info(camera_httpd, client_fds[i]);
+                if (client_info == HTTPD_WS_CLIENT_WEBSOCKET) {
+                        log_i("client number %d", i);
+                        httpd_ws_send_frame_async(camera_httpd, client_fds[i], &ws_pkt);
+                }
+        }
+        return ESP_OK;
+}
+
+static esp_err_t on_ws_receive_handler(httpd_req_t *req)
 {
-    EventGroupHandle_t *event_group = get_event_group();
-    log_i("mom notifies baby is happy please renable monitor");
+        httpd_ws_frame_t ws_pkt;
+        esp_err_t ret;
+        uint8_t *buf = NULL;
+        EventGroupHandle_t *event_group = get_event_group();
+        
+        if (req->method == HTTP_GET) {
+                log_i("Handshake done, the new connection was opened");
+                send_ws_message("ws ready");
+                return ESP_OK;
+        }
+    
+    
+        memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
+        ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+        ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+  
+        if (ret != ESP_OK)  {
+                log_e("httpd_ws_recv_frame failed to get frame len with %d", ret);
+                return ret;
+        }
 
-    xEventGroupSetBits(*event_group, got_baby_happy);
+        if (ws_pkt.len) {
+                buf = (uint8_t*)calloc(1, ws_pkt.len + 1);
+                if (buf == NULL) {
+                        log_e("Failed to calloc memory for buf");
+                        return ESP_ERR_NO_MEM;
+                }
 
-    return ESP_OK;
+                ws_pkt.payload = buf;
+                ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+                if (ret != ESP_OK) {
+                        log_e("httpd_ws_recv_frame failed with %d", ret);
+                        free(buf);
+                        return ret;
+                }
+                log_e("Got packet with message: %s", ws_pkt.payload);
+        }
+
+        log_e("frame len is %d", ws_pkt.len);
+
+        if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
+                if (strcmp((char *)ws_pkt.payload, "back to normal") == 0) {
+                        log_i("mom notifies baby is happy please renable monitor");
+                        xEventGroupSetBits(*event_group, got_baby_happy);
+                } else {
+                        log_i("unkown comand");
+                }
+        }
+        free(buf);
+
+        return ESP_OK;
 }
 
 void startCameraServer()
@@ -1327,17 +1403,13 @@ void startCameraServer()
         .supported_subprotocol = NULL
 #endif
     };
-    httpd_uri_t baby_uri = {
-        .uri = "/baby",
+
+    httpd_uri_t ws = {
+        .uri = "/ws",
         .method = HTTP_GET,
-        .handler = baby_handler,
-        .user_ctx = NULL
-#ifdef CONFIG_HTTPD_WS_SUPPORT
-        ,
+        .handler = on_ws_receive_handler,
+        .user_ctx = NULL,
         .is_websocket = true,
-        .handle_ws_control_frames = false,
-        .supported_subprotocol = NULL
-#endif
     };
 
     ra_filter_init(&ra_filter, 20);
@@ -1362,7 +1434,7 @@ void startCameraServer()
         httpd_register_uri_handler(camera_httpd, &greg_uri);
         httpd_register_uri_handler(camera_httpd, &pll_uri);
         httpd_register_uri_handler(camera_httpd, &win_uri);
-        httpd_register_uri_handler(camera_httpd, &baby_uri);
+        httpd_register_uri_handler(camera_httpd, &ws);
     }
 
     config.server_port += 1;
