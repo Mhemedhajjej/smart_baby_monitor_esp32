@@ -2,38 +2,8 @@
 #include <WiFi.h>
 #include "freertos/event_groups.h"
 #include "DHT.h"
-
-//
-// WARNING!!! PSRAM IC required for UXGA resolution and high JPEG quality
-//            Ensure ESP32 Wrover Module or other board with PSRAM is selected
-//            Partial images will be transmitted if image exceeds buffer size
-//
-//            You must select partition scheme from the board menu that has at least 3MB APP space.
-//            Face Recognition is DISABLED for ESP32 and ESP32-S2, because it takes up from 15 
-//            seconds to process single frame. Face Detection is ENABLED if PSRAM is enabled as well
-
-// ===================
-// Select camera model
-// ===================
-#define CAMERA_MODEL_WROVER_KIT // Has PSRAM
-//#define CAMERA_MODEL_ESP_EYE // Has PSRAM
-//#define CAMERA_MODEL_ESP32S3_EYE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_PSRAM // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_V2_PSRAM // M5Camera version B Has PSRAM
-//#define CAMERA_MODEL_M5STACK_WIDE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_ESP32CAM // No PSRAM
-//#define CAMERA_MODEL_M5STACK_UNITCAM // No PSRAM
-//#define CAMERA_MODEL_AI_THINKER // Has PSRAM
-//#define CAMERA_MODEL_TTGO_T_JOURNAL // No PSRAM
-//#define CAMERA_MODEL_XIAO_ESP32S3 // Has PSRAM
-// ** Espressif Internal Boards **
-//#define CAMERA_MODEL_ESP32_CAM_BOARD
-//#define CAMERA_MODEL_ESP32S2_CAM_BOARD
-//#define CAMERA_MODEL_ESP32S3_CAM_LCD
-//#define CAMERA_MODEL_DFRobot_FireBeetle2_ESP32S3 // Has PSRAM
-//#define CAMERA_MODEL_DFRobot_Romeo_ESP32S3 // Has PSRAM
-#include "camera_pins.h"
 #include "config.h"
+#include "camera_pins.h"
 
 /******************************************************************* 
 ******* SYSTEM CONFIGURATIONS ************************************** 
@@ -110,18 +80,21 @@ void setup() {
                 Serial.println("WiFi connected");
         }
 
+        /* start camera web server */
         if (err == ESP_OK) {
                 startCameraServer();
                 Serial.print("Camera Server Ready! Use 'http://");
                 Serial.print(WiFi.localIP());
                 Serial.println("' to connect");
         }
-
+        
+        /* create event group for the exteral events of the monitor/alarm system */
         if (err == ESP_OK) {
               g_event_group = xEventGroupCreate();
               configASSERT(g_event_group);
         }
 
+        /* setup ecternal sensors (sound, temperature, humidity, etc..)*/
         if (err == ESP_OK)
                 setup_external_sensors();
 
@@ -138,18 +111,24 @@ void loop()
                 portMAX_DELAY);/* block */
 
         if (g_event_bits & got_temp) {
+                /* time point to check room conditions (temp + humd)*/
                 status = check_room_conditions();
+
+                /* any limit violation -> send alert to user(s) */
                 if (status != "room conditions ok")
                         print_alert_notification(status);
         } else  if (g_event_bits & got_sound) {
+                /* baby crying -> sound monitor disabled to avoid continous interrupt trigger -> send alert to user(s)*/
                 print_alert_notification("Status: AWAKE \n");
         } else if (g_event_bits & got_baby_happy) {
+                /* user notified via baby button in browser that baby is cared -> re-enable sound sensor */
                 Serial.println("mon left the range & baby is happy");
                 sound_detector_enable();
-                send_ws_message("normal");
+                send_ws_message("normal"); // websocket to reflect normal status in baby button in browser
         }
 }
 
+/* function to pass event group handle to other files (app_httpd)*/
 EventGroupHandle_t *get_event_group(void)
 {
     return &g_event_group;
@@ -318,7 +297,7 @@ static String check_room_conditions(void)
 static void print_alert_notification(String msg)
 {
     Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
-    send_ws_message("alert");
+    send_ws_message("alert"); //web socket to reflect baby alert-state in baby button in browser 
 }
 
 /*******************************************************************************

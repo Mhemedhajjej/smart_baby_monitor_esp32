@@ -9,8 +9,8 @@
         <style>
             body {
                 font-family: Arial,Helvetica,sans-serif;
-                background: #181818;
-                color: #EFEFEF;
+                background: white; /* Change background color to white */
+                color: #181818; /* Change text color to dark for better contrast */
                 font-size: 16px
             }
 
@@ -27,22 +27,36 @@
             }
 
             #menu {
-                display: none;
+                position: absolute; /* Position menu absolutely */
+                top: 50px; /* Adjust top position */
+                right: 10px; /* Adjust right position */
+                display: none; /* Hide menu by default */
                 flex-wrap: nowrap;
                 min-width: 340px;
-                background: #363636;
+                background: white;
                 padding: 8px;
                 border-radius: 4px;
-                margin-top: -10px;
-                margin-right: 10px;
+                margin-top: 0; /* Remove margin to attach it directly to the task bar */
+                margin-left: 10px;
+                color: black; /* Add this line to change text color in menu to black */
+                border: 2px solid black; /* Add black borders */
             }
+
+          
 
             #content {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: stretch
+                display: none; /* Hide content by default */
+                position: absolute; /* Position content absolutely */
+                top: 60px; /* Position it just below the task bar */
+                right: 10px; /* Position it to the right side */
+                width: 200px; /* Decrease width */
+                height: 200px; /* Decrease height */
+                background-color: white; /* Background color */
+                z-index: 1; /* Ensure it appears above other elements */
+                margin-top: 0; /* Remove margin to attach it directly to the task bar */
+                border: 2px solid white; /* Add white borders */
             }
-
+            
             figure {
                 padding: 0px;
                 margin: 0;
@@ -96,7 +110,8 @@
             section#buttons {
                 display: flex;
                 flex-wrap: nowrap;
-                justify-content: space-between
+                justify-content: space-between;
+                margin-top: 10px;
             }
 
             #nav-toggle {
@@ -114,6 +129,7 @@
             #nav-toggle-cb:checked+#menu {
                 display: flex
             }
+            
 
             .input-group {
                 display: flex;
@@ -378,229 +394,189 @@
             input.toggle-section-button:checked+section.toggle-section {
                 display: none
             }
+            /* Add these styles for the title bar */
+            #title-bar {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                background-color: #444;
+                padding: 10px;
+                border-radius: 4px;
+                color: white;
+                margin-bottom: 10px; /* Add some space between title bar and task bar */
+            }
 
+            #title-bar h1 {
+                margin: 0;
+                font-size: 24px;
+}
+
+             /* Adjust styles for the task bar */
+    #task-bar {
+        display: flex;
+        flex-direction: row; /* Horizontal alignment */
+        justify-content: space-between; /* Space between buttons */
+        align-items: center;
+        background-color: white; /* Change background color to white */
+        padding: 10px;
+        border-radius: 4px;
+        position: fixed; /* Fix the task bar to the top */
+        top: 0;
+        left: 0;
+        width: 100%; /* Full width */
+        border-bottom: 2px solid gray; /* Add black line to separate task bar */
+    }
+
+    #task-bar .buttons {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-grow: 1;
+        justify-content: center; /* Center the buttons horizontally */
+    }
+
+    #settings-button {
+        align-self: flex-end; /* Move settings button to the right */
+        margin-bottom: 0; /* Remove bottom margin */
+    }
+
+    /* Adjust content to account for the task bar */
+    /* #content {
+        margin-top: 60px; /* Adjust margin to match task bar height */
+    /* } */ 
+
+    #task-bar button {
+        margin-bottom: 0; /* Remove bottom margin */
+        margin-right: 10px; /* Add space between buttons */
+    }
+
+    #stream-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: 320px; /* Increase the minimum width by 100% */
+        min-height: 320px; /* Increase the minimum height by 100% */
+    }
+    #task-bar {
+        background-color: whitesmoke; /* Change background color to grey */
+    }
         </style>
     </head>
     <body>
         <section class="main">
-            <div id="logo">
-                <label for="nav-toggle-cb" id="nav-toggle">&#9776;&nbsp;&nbsp;Toggle OV2640 settings</label>
-            </div>
-            <div id="content">
-                <div id="sidebar">
-                    <input type="checkbox" id="nav-toggle-cb" checked="checked">
-                    <nav id="menu">
+            <div id="task-bar">
+                <div class="logo"><i class="fas fa-baby"></i> Baby Monitor</div>
+                <div class="buttons">
+                    <button id="get-still" title="photo capture"><i class="fa fa-camera"></i> Capture</button>
+                    <button id="toggle-stream" title="video stream"><i class="fa fa-video-slash"></i> Stream</button>
+                    <button id="alarm-button" title="alarm state"><i class="fa fa-bell"></i> Alarm</button>
+                </div>
+                <button id="settings-button" title="camera settings"><i class="fa fa-cog"></i> Settings</button>
+            
+                <nav id="menu">
+                    <div class="input-group" id="framesize-group">
+                        <label for="framesize">Resolution</label>
+                        <select id="framesize" class="default-action">
+                            <!-- 2MP -->
+                            <option value="13">UXGA(1600x1200)</option>
+                            <option value="12">SXGA(1280x1024)</option>
+                            <option value="11">HD(1280x720)</option>
+                            <option value="10">XGA(1024x768)</option>
+                            <option value="9">SVGA(800x600)</option>
+                            <option value="8">VGA(640x480)</option>
+                            <option value="7">HVGA(480x320)</option>
+                            <option value="6">CIF(400x296)</option>
+                            <option value="5">QVGA(320x240)</option>
+                            <option value="4">240x240</option>
+                            <option value="3">HQVGA(240x176)</option>
+                            <option value="2">QCIF(176x144)</option>
+                            <option value="1">QQVGA(160x120)</option>
+                            <option value="0">96x96</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="brightness-group">
+                        <label for="brightness">Brightness</label>
+                        <div class="range-min">-2</div>
+                        <input type="range" id="brightness" min="-2" max="2" value="0" class="default-action">
+                        <div class="range-max">2</div>
+                    </div>
+                    <div class="input-group" id="contrast-group">
+                        <label for="contrast">Contrast</label>
+                        <div class="range-min">-2</div>
+                        <input type="range" id="contrast" min="-2" max="2" value="0" class="default-action">
+                        <div class="range-max">2</div>
+                    </div>
+                    <div class="input-group" id="hmirror-group">
+                        <label for="hmirror">H-Mirror</label>
+                        <div class="switch">
+                            <input id="hmirror" type="checkbox" class="default-action" checked="checked">
+                            <label class="slider" for="hmirror"></label>
+                        </div>
+                    </div>
+                    <div class="input-group" id="vflip-group">
+                        <label for="vflip">V-Flip</label>
+                        <div class="switch">
+                            <input id="vflip" type="checkbox" class="default-action" checked="checked">
+                            <label class="slider" for="vflip"></label>
+                        </div>
+                    </div>
+                    <div class="input-group" id="led-group">
+                      <label for="led_intensity">LED Intensity</label>
+                      <div class="range-min">0</div>
+                      <input type="range" id="led_intensity" min="0" max="255" value="0" class="default-action">
+                      <div class="range-max">255</div>
+                    </div>
+                    <div style="margin-top: 8px;"><center><span style="font-weight: bold;">Advanced Settings</span></center></div>
+                    <hr style="width:100%">
+                    <label for="nav-toggle-win" class="toggle-section-label">&#9776;&nbsp;&nbsp;Window</label><input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-button" checked="checked">
+                    <section class="toggle-section">
 
-                        <section id="xclk-section" class="nothidden">
-                            <div class="input-group" id="set-xclk-group">
-                                <label for="set-xclk">XCLK MHz</label>
-                                <div class="text">
-                                    <input id="xclk" type="text" minlength="1" maxlength="2" size="2" value="20">
-                                </div>
-                                <button class="inline-button" id="set-xclk">Set</button>
-                            </div>
-                        </section>
-
-                        <div class="input-group" id="framesize-group">
-                            <label for="framesize">Resolution</label>
-                            <select id="framesize" class="default-action">
-                                <!-- 2MP -->
-                                <option value="13">UXGA(1600x1200)</option>
-                                <option value="12">SXGA(1280x1024)</option>
-                                <option value="11">HD(1280x720)</option>
-                                <option value="10">XGA(1024x768)</option>
-                                <option value="9">SVGA(800x600)</option>
-                                <option value="8">VGA(640x480)</option>
-                                <option value="7">HVGA(480x320)</option>
-                                <option value="6">CIF(400x296)</option>
-                                <option value="5">QVGA(320x240)</option>
-                                <option value="4">240x240</option>
-                                <option value="3">HQVGA(240x176)</option>
-                                <option value="2">QCIF(176x144)</option>
-                                <option value="1">QQVGA(160x120)</option>
-                                <option value="0">96x96</option>
+                        <div class="input-group">
+                            <label for="start-x">Sensor Resolution</label><select id="start-x">
+                                <option value="2">CIF (400x296)</option>
+                                <option value="1">SVGA (800x600)</option>
+                                <option value="0" selected="selected">UXGA (1600x1200)</option>
                             </select>
                         </div>
-                        <div class="input-group" id="quality-group">
-                            <label for="quality">Quality</label>
-                            <div class="range-min">4</div>
-                            <input type="range" id="quality" min="4" max="63" value="10" class="default-action">
-                            <div class="range-max">63</div>
-                        </div>
-                        <div class="input-group" id="brightness-group">
-                            <label for="brightness">Brightness</label>
-                            <div class="range-min">-2</div>
-                            <input type="range" id="brightness" min="-2" max="2" value="0" class="default-action">
-                            <div class="range-max">2</div>
-                        </div>
-                        <div class="input-group" id="contrast-group">
-                            <label for="contrast">Contrast</label>
-                            <div class="range-min">-2</div>
-                            <input type="range" id="contrast" min="-2" max="2" value="0" class="default-action">
-                            <div class="range-max">2</div>
-                        </div>
-                        <div class="input-group" id="saturation-group">
-                            <label for="saturation">Saturation</label>
-                            <div class="range-min">-2</div>
-                            <input type="range" id="saturation" min="-2" max="2" value="0" class="default-action">
-                            <div class="range-max">2</div>
-                        </div>
-                        <div class="input-group" id="hmirror-group">
-                            <label for="hmirror">H-Mirror</label>
-                            <div class="switch">
-                                <input id="hmirror" type="checkbox" class="default-action" checked="checked">
-                                <label class="slider" for="hmirror"></label>
-                            </div>
-                        </div>
-                        <div class="input-group" id="vflip-group">
-                            <label for="vflip">V-Flip</label>
-                            <div class="switch">
-                                <input id="vflip" type="checkbox" class="default-action" checked="checked">
-                                <label class="slider" for="vflip"></label>
-                            </div>
-                        </div>
-                        <div class="input-group" id="dcw-group">
-                            <label for="dcw">DCW (Downsize EN)</label>
-                            <div class="switch">
-                                <input id="dcw" type="checkbox" class="default-action" checked="checked">
-                                <label class="slider" for="dcw"></label>
-                            </div>
-                        </div>
-                        <div class="input-group" id="colorbar-group">
-                            <label for="colorbar">Color Bar</label>
-                            <div class="switch">
-                                <input id="colorbar" type="checkbox" class="default-action">
-                                <label class="slider" for="colorbar"></label>
-                            </div>
-                        </div>
-                        <div class="input-group" id="led-group">
-                          <label for="led_intensity">LED Intensity</label>
-                          <div class="range-min">0</div>
-                          <input type="range" id="led_intensity" min="0" max="255" value="0" class="default-action">
-                          <div class="range-max">255</div>
-                        </div>
-                        <div class="input-group" id="face_detect-group">
-                            <label for="face_detect">Face Detection</label>
-                            <div class="switch">
-                                <input id="face_detect" type="checkbox" class="default-action">
-                                <label class="slider" for="face_detect"></label>
-                            </div>
-                        </div>
-                        <div class="input-group" id="face_recognize-group">
-                            <label for="face_recognize">Face Recognition</label>
-                            <div class="switch">
-                                <input id="face_recognize" type="checkbox" class="default-action">
-                                <label class="slider" for="face_recognize"></label>
-                            </div>
-                        </div>
-                        <section id="buttons">
-                            <button id="get-still"><i class="fa fa-camera"></i></button>
-                            <button id="toggle-stream"><i class="fa fa-eye-slash"></i></button>
-                            <button id="baby-icon-button"><i class="fas fa-baby"></i></button>
-                        </section>
+                        
 
-                        <div style="margin-top: 8px;"><center><span style="font-weight: bold;">Advanced Settings</span></center></div>
-                        <hr style="width:100%">
-                        <label for="nav-toggle-reg" class="toggle-section-label">&#9776;&nbsp;&nbsp;Register Get/Set</label><input type="checkbox" id="nav-toggle-reg" class="hidden toggle-section-button" checked="checked">
-                        <section class="toggle-section">
-                            <!--h4>Set Register</h4-->
-                            <div class="input-group" id="set-reg-group">
-                                <label for="set-reg">Reg, Mask, Value</label>
-                                <div class="text">
-                                    <input id="reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111">
-                                </div>
-                                <div class="text">
-                                    <input id="reg-mask" type="text" minlength="4" maxlength="4" size="4" value="0x80">
-                                </div>
-                                <div class="text">
-                                    <input id="reg-value" type="text" minlength="4" maxlength="4" size="4" value="0x80">
-                                </div>
-                                <button class="inline-button" id="set-reg">Set</button>
+                        <div class="input-group" id="set-offset-res-group">
+                            <label for="offset-x">Offset</label>
+                            <div class="text">
+                                X:<input id="offset-x" type="text" minlength="1" maxlength="3" size="6" value="400">
                             </div>
-                            <hr style="width:50%">
-                            <!--h4>Get Register</h4-->
-                            <div class="input-group" id="get-reg-group">
-                                <label for="get-reg">Reg, Mask</label>
-                                <div class="text">
-                                    <input id="get-reg-addr" type="text" minlength="4" maxlength="6" size="6" value="0x111">
-                                </div>
-                                <div class="text">
-                                    <input id="get-reg-mask" type="text" minlength="4" maxlength="6" size="6" value="0x80">
-                                </div>
-                                <button class="inline-button" id="get-reg">Get</button>
+                            <div class="text">
+                                Y:<input id="offset-y" type="text" minlength="1" maxlength="3" size="6" value="300">
                             </div>
-                            <div class="input-group">
-                                <label for="get-reg-value">Value</label>
-                                <div class="text">
-                                    <span id="get-reg-value">0x1234</span>
-                                </div>
+                        </div>
+                        <div class="input-group" id="set-total-res-group">
+                            <label for="total-x">Window Size</label>
+                            <div class="text">
+                                X:<input id="total-x" type="text" minlength="1" maxlength="4" size="6" value="800">
                             </div>
-                        </section>
-                        <hr style="width:100%">
-                        <label for="nav-toggle-2640pll" class="toggle-section-label">&#9776;&nbsp;&nbsp;CLK</label><input type="checkbox" id="nav-toggle-2640pll" class="hidden toggle-section-button" checked="checked">
-                        <section class="toggle-section">
-
-                            <div class="input-group"><label for="2640pll1">CLK 2X</label><div class="switch"><input id="2640pll1" type="checkbox" class="reg-action" reg="0x111" offset="7" mask="0x01"><label class="slider" for="2640pll1"></label></div></div>
-
-                            <div class="input-group"><label for="2640pll3">CLK DIV</label><div class="text">0<input id="2640pll3" type="text" minlength="1" maxlength="2" size="2" value="1" class="reg-action" reg="0x111" offset="0" mask="0x3f">63</div></div>
-                            <div class="input-group"><label for="2640pll5">Auto PCLK</label><div class="switch"><input id="2640pll5" type="checkbox" class="reg-action" reg="0xd3" offset="7" mask="0x01"><label class="slider" for="2640pll5"></label></div></div>
-                            <div class="input-group"><label for="2640pll4">PCLK DIV</label><div class="text">0<input id="2640pll4" type="text" minlength="1" maxlength="3" size="3" value="4" class="reg-action" reg="0xd3" offset="0" mask="0x7f">127</div></div>
-
-                        </section>
-                        <hr style="width:100%">
-                        <label for="nav-toggle-win" class="toggle-section-label">&#9776;&nbsp;&nbsp;Window</label><input type="checkbox" id="nav-toggle-win" class="hidden toggle-section-button" checked="checked">
-                        <section class="toggle-section">
-
-                            <div class="input-group">
-                                <label for="start-x">Sensor Resolution</label><select id="start-x">
-                                    <option value="2">CIF (400x296)</option>
-                                    <option value="1">SVGA (800x600)</option>
-                                    <option value="0" selected="selected">UXGA (1600x1200)</option>
-                                </select>
+                            <div class="text">
+                                Y:<input id="total-y" type="text" minlength="1" maxlength="4" size="6" value="600">
                             </div>
-
-                            <div class="input-group" id="set-offset-res-group">
-                                <label for="offset-x">Offset</label>
-                                <div class="text">
-                                    X:<input id="offset-x" type="text" minlength="1" maxlength="3" size="6" value="400">
-                                </div>
-                                <div class="text">
-                                    Y:<input id="offset-y" type="text" minlength="1" maxlength="3" size="6" value="300">
-                                </div>
+                        </div>
+                        <div class="input-group" id="set-output-res-group">
+                            <label for="output-x">Output Size</label>
+                            <div class="text">
+                                X:<input id="output-x" type="text" minlength="1" maxlength="4" size="6" value="320">
                             </div>
-                            <div class="input-group" id="set-total-res-group">
-                                <label for="total-x">Window Size</label>
-                                <div class="text">
-                                    X:<input id="total-x" type="text" minlength="1" maxlength="4" size="6" value="800">
-                                </div>
-                                <div class="text">
-                                    Y:<input id="total-y" type="text" minlength="1" maxlength="4" size="6" value="600">
-                                </div>
+                            <div class="text">
+                                Y:<input id="output-y" type="text" minlength="1" maxlength="4" size="6" value="240">
                             </div>
-                            <div class="input-group" id="set-output-res-group">
-                                <label for="output-x">Output Size</label>
-                                <div class="text">
-                                    X:<input id="output-x" type="text" minlength="1" maxlength="4" size="6" value="320">
-                                </div>
-                                <div class="text">
-                                    Y:<input id="output-y" type="text" minlength="1" maxlength="4" size="6" value="240">
-                                </div>
-                            </div>
-                            <button id="set-resolution">Set Resolution</button>
-                        </section>
-
-
-
-                    </nav>
-                </div>
-                <figure>
-                    <div id="stream-container" class="image-container hidden">
-                        <a id="save-still" href="#" class="button save" download="capture.jpg">Save</a>
-                        <div class="close" id="close-stream">×</div>
-                        <img id="stream" src="" crossorigin>
-                    </div>
-                </figure>
+                        </div>
+                        <button id="set-resolution">Set Resolution</button>
+                    </section>
+                </nav>
             </div>
+            <div id="stream-container" class="image-container hidden">
+              <a id="save-still" href="#" class="button save" download="capture.jpg">Save</a>
+              <div class="close" id="close-stream">×</div>
+              <img id="stream" src="" crossorigin>
+          </div>
         </section>
         <script>
 document.addEventListener('DOMContentLoaded', function (event) {
@@ -625,71 +601,25 @@ document.addEventListener('DOMContentLoaded', function (event) {
       });
   }
 
-  function setReg(reg, offset, mask, value, cb){
-    //console.log('Set Reg', '0x'+reg.toString(16), offset, '0x'+mask.toString(16), '0x'+value.toString(16), '('+value+')');
-    value = (value & mask) << offset;
-    mask = mask << offset;
-    fetchUrl(`${baseHost}/reg?reg=${reg}&mask=${mask}&val=${value}`, cb);
-  }
-
-  function getReg(reg, offset, mask, cb){
-    mask = mask << offset;
-    fetchUrl(`${baseHost}/greg?reg=${reg}&mask=${mask}`, function(code, txt){
-      let value = 0;
-      if(code == 200){
-        value = parseInt(txt);
-        value = (value & mask) >> offset;
-        txt = ''+value;
-      }
-      cb(code, txt);
-    });
-  }
-
-  function setXclk(xclk, cb){
-    fetchUrl(`${baseHost}/xclk?xclk=${xclk}`, cb);
-  }
-
   function setWindow(start_x, start_y, end_x, end_y, offset_x, offset_y, total_x, total_y, output_x, output_y, scaling, binning, cb){
     fetchUrl(`${baseHost}/resolution?sx=${start_x}&sy=${start_y}&ex=${end_x}&ey=${end_y}&offx=${offset_x}&offy=${offset_y}&tx=${total_x}&ty=${total_y}&ox=${output_x}&oy=${output_y}&scale=${scaling}&binning=${binning}`, cb);
   }
 
-  const setRegButton = document.getElementById('set-reg')
-  setRegButton.onclick = () => {
-    let reg = parseInt(document.getElementById('reg-addr').value);
-    let mask = parseInt(document.getElementById('reg-mask').value);
-    let value = parseInt(document.getElementById('reg-value').value);
-
-    setReg(reg, 0, mask, value, function(code, txt){
-      if(code != 200){
-        alert('Error['+code+']: '+txt);
-      }
-    });
+  const hide = el => {
+    el.classList.add('hidden')
+  }
+  const show = el => {
+    el.classList.remove('hidden')
   }
 
-  const getRegButton = document.getElementById('get-reg')
-  getRegButton.onclick = () => {
-    let reg = parseInt(document.getElementById('get-reg-addr').value);
-    let mask = parseInt(document.getElementById('get-reg-mask').value);
-    let value = document.getElementById('get-reg-value');
-
-    getReg(reg, 0, mask, function(code, txt){
-      if(code != 200){
-        value.innerHTML = 'Error['+code+']: '+txt;
-      } else {
-        value.innerHTML = '0x'+parseInt(txt).toString(16)+' ('+txt+')';
-      }
-    });
+  const disable = el => {
+    el.classList.add('disabled')
+    el.disabled = true
   }
 
-  const setXclkButton = document.getElementById('set-xclk')
-  setXclkButton.onclick = () => {
-    let xclk = parseInt(document.getElementById('xclk').value);
-
-    setXclk(xclk, function(code, txt){
-      if(code != 200){
-        alert('Error['+code+']: '+txt);
-      }
-    });
+  const enable = el => {
+    el.classList.remove('disabled')
+    el.disabled = false
   }
 
   const setResButton = document.getElementById('set-resolution')
@@ -707,102 +637,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
         alert('Error['+code+']: '+txt);
       }
     });
-  }
-
-  const setRegValue = (el) => {
-    let reg = el.attributes.reg?parseInt(el.attributes.reg.nodeValue):0;
-    let offset = el.attributes.offset?parseInt(el.attributes.offset.nodeValue):0;
-    let mask = el.attributes.mask?parseInt(el.attributes.mask.nodeValue):255;
-    let value = 0;
-    switch (el.type) {
-      case 'checkbox':
-        value = el.checked ? mask : 0;
-        break;
-      case 'range':
-      case 'text':
-      case 'select-one':
-        value = el.value;
-        break
-      default:
-        return;
-    }
-
-    setReg(reg, offset, mask, value, function(code, txt){
-      if(code != 200){
-        alert('Error['+code+']: '+txt);
-      }
-    });
-  }
-
-  // Attach on change action for register elements
-  document
-    .querySelectorAll('.reg-action')
-    .forEach(el => {
-        if (el.type === 'text') {
-            el.onkeyup = function(e){
-                if(e.keyCode == 13){
-                    setRegValue(el);
-                }
-            }
-        } else {
-            el.onchange = () => setRegValue(el)
-        }
-    })
-
-
-  const updateRegValue = (el, value, updateRemote) => {
-    let initialValue;
-    let offset = el.attributes.offset?parseInt(el.attributes.offset.nodeValue):0;
-    let mask = (el.attributes.mask?parseInt(el.attributes.mask.nodeValue):255) << offset;
-    value = (value & mask) >> offset;
-    if (el.type === 'checkbox') {
-      initialValue = el.checked
-      value = !!value
-      el.checked = value
-    } else {
-      initialValue = el.value
-      el.value = value
-    }
-  }
-
-
-  const printReg = (el) => {
-    let reg = el.attributes.reg?parseInt(el.attributes.reg.nodeValue):0;
-    let offset = el.attributes.offset?parseInt(el.attributes.offset.nodeValue):0;
-    let mask = el.attributes.mask?parseInt(el.attributes.mask.nodeValue):255;
-    let value = 0;
-    switch (el.type) {
-      case 'checkbox':
-        value = el.checked ? mask : 0;
-        break;
-      case 'range':
-      case 'select-one':
-        value = el.value;
-        break
-      default:
-        return;
-    }
-    value = (value & mask) << offset;
-    return '0x'+reg.toString(16)+', 0x'+value.toString(16);
-  }
-
-
-
-  const hide = el => {
-    el.classList.add('hidden')
-  }
-  const show = el => {
-    el.classList.remove('hidden')
-  }
-
-  const disable = el => {
-    el.classList.add('disabled')
-    el.disabled = true
-  }
-
-  const enable = el => {
-    el.classList.remove('disabled')
-    el.disabled = false
   }
 
   const updateValue = (el, value, updateRemote) => {
@@ -883,40 +717,47 @@ document.addEventListener('DOMContentLoaded', function (event) {
         .forEach(el => {
           updateValue(el, state[el.id], false)
         })
-      document
-        .querySelectorAll('.reg-action')
-        .forEach(el => {
-            let reg = el.attributes.reg?parseInt(el.attributes.reg.nodeValue):0;
-            if(reg == 0){
-              return;
-            }
-            updateRegValue(el, state['0x'+reg.toString(16)], false)
-        })
     })
 
   const view = document.getElementById('stream')
   const viewContainer = document.getElementById('stream-container')
   const stillButton = document.getElementById('get-still')
   const streamButton = document.getElementById('toggle-stream')
-  const enrollButton = document.getElementById('face_enroll')
   const closeButton = document.getElementById('close-stream')
   const saveButton = document.getElementById('save-still')
   const ledGroup = document.getElementById('led-group')
-  const babyButton = document.getElementById('baby-icon-button')
+  const babyButton = document.getElementById('alarm-button')
+  const settingButton = document.getElementById('settings-button')
+   
+  settingButton.onclick = () => {
+    var menu = document.getElementById('menu');
+    menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
+  }
+
+streamButton.onclick = () => {
+    view.src = `${streamUrl}/stream`
+    const icon = streamButton.querySelector('i');
+    if (icon.classList.contains('fa-video-slash')) {
+      startStream()
+    } else {
+      stopStream()
+      hide(viewContainer)
+    }
+  }
 
   const stopStream = () => {
     const icon = streamButton.querySelector('i');
     window.stop();
-    icon.classList.remove('fa-eye');
-    icon.classList.add('fa-eye-slash');
+    icon.classList.remove('fa-video');
+    icon.classList.add('fa-video-slash');
   }
 
   const startStream = () => {
     const icon = streamButton.querySelector('i');
     view.src = `${streamUrl}/stream`
     show(viewContainer)
-    icon.classList.remove('fa-eye-slash');
-    icon.classList.add('fa-eye');
+    icon.classList.remove('fa-video-slash');
+    icon.classList.add('fa-video');
   }
 
   // Attach actions to buttons
@@ -929,16 +770,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
   closeButton.onclick = () => {
     stopStream()
     hide(viewContainer)
-  }
-
-  streamButton.onclick = () => {
-    const icon = streamButton.querySelector('i');
-    if (icon.classList.contains('fa-eye-slash')) {
-      startStream()
-    } else {
-      stopStream()
-      hide(viewContainer)
-    }
   }
 
 
@@ -982,10 +813,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
   }
 
 
-  enrollButton.onclick = () => {
-    updateConfig(enrollButton)
-  }
-
   saveButton.onclick = () => {
     var canvas = document.createElement("canvas");
     canvas.width = view.width;
@@ -1012,48 +839,6 @@ document.addEventListener('DOMContentLoaded', function (event) {
     })
 
   // Custom actions
-
-
-  // Detection and framesize
-  const detect = document.getElementById('face_detect')
-  const recognize = document.getElementById('face_recognize')
-  const framesize = document.getElementById('framesize')
-
-  framesize.onchange = () => {
-    updateConfig(framesize)
-    if (framesize.value > 5) {
-      updateValue(detect, false)
-      updateValue(recognize, false)
-    }
-  }
-
-  detect.onchange = () => {
-    if (framesize.value > 5) {
-      alert("Please select CIF or lower resolution before enabling this feature!");
-      updateValue(detect, false)
-      return;
-    }
-    updateConfig(detect)
-    if (!detect.checked) {
-      disable(enrollButton)
-      updateValue(recognize, false)
-    }
-  }
-
-  recognize.onchange = () => {
-    if (framesize.value > 5) {
-      alert("Please select CIF or lower resolution before enabling this feature!");
-      updateValue(recognize, false)
-      return;
-    }
-    updateConfig(recognize)
-    if (recognize.checked) {
-      enable(enrollButton)
-      updateValue(detect, true)
-    } else {
-      disable(enrollButton)
-    }
-  }
 })
 
         </script>
