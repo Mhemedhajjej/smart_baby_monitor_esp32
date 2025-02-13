@@ -4,6 +4,8 @@
 #include "DHT.h"
 #include "config.h"
 #include "camera_pins.h"
+#include <HTTPClient.h>
+#include <UrlEncode.h>
 
 /******************************************************************* 
 ******* SYSTEM CONFIGURATIONS ************************************** 
@@ -12,6 +14,11 @@
 // Enter your WiFi credentials
 const char* ssid = "SET_YOUR_WIFI_SSID_HERE";
 const char* password = "SET_YOUR_WIFI_PASSWORD_HERE";
+
+// Enter your whatsapp contact info
+const String phoneNumber = "SET_YOUR_WHATSAPP_NUMBER_HERE";
+const String apiKey = "SET_YOUR_API_KEY_HERE"; //got from callmebot.com
+
 
 /******************************************************************* 
 ******* STATIC FUNCTIONS ******************************************* 
@@ -28,8 +35,12 @@ static void setup_external_sensors();
 static void temperature_sensor_setup();
 
 static String check_room_conditions(void);
+
 static esp_err_t alert_open_na(void);
+
+static esp_err_t send_alert_notification(String msg);
 static esp_err_t print_alert_notification(String msg);
+static esp_err_t send_alert_via_whatsapp(String msg);
 
 static void IRAM_ATTR read_temp_hum_isr();
 static void IRAM_ATTR sound_monitor_isr();
@@ -55,8 +66,8 @@ struct alert_ops_s {
                 .send = NULL
         },
         [ALERT_METHOD_WHATSAPP] = {
-                .open = NULL,
-                .send = NULL
+                .open = alert_open_na,
+                .send = send_alert_via_whatsapp,
         },
         [ALERT_METHOD_BLYNK_IOT] = {
                 .open = NULL,
@@ -68,8 +79,8 @@ struct alert_ops_s {
         }
 };
 
-alert_ops_t *alert = NULL;
-static uint8_t g_alert_driver = ALERT_METHOD_LOG;
+struct alert_ops_s *alert = NULL;
+static uint8_t g_alert_driver = ALERT_METHOD_WHATSAPP;
 
 /******************************************************************* 
 ******* EXTERN FUNCTIONS ******************************************* 
@@ -123,7 +134,7 @@ void setup() {
         /* setup ecternal sensors (sound, temperature, humidity, etc..)*/
         if (err == ESP_OK)
                 setup_external_sensors();
-
+        
         /* set alert notifier method */
         if (err == ESP_OK) {
                 alert = &g_alert_ops[g_alert_driver];
@@ -147,10 +158,10 @@ void loop()
 
                 /* any limit violation -> send alert to user(s) */
                 if (status != "room conditions ok")
-                        alert->send(status);
+                        send_alert_notification(status);
         } else  if (g_event_bits & got_sound) {
                 /* baby crying -> sound monitor disabled to avoid continous interrupt trigger -> send alert to user(s)*/
-                alert->send("Status: AWAKE \n");
+                send_alert_notification("Status: AWAKE \n");
         } else if (g_event_bits & got_baby_happy) {
                 /* user notified via baby button in browser that baby is cared -> re-enable sound sensor */
                 Serial.println("mon left the range & baby is happy");
@@ -330,11 +341,40 @@ static esp_err_t alert_open_na()
     return ESP_OK;
 }
 
+static esp_err_t send_alert_notification(String msg)
+{
+    send_ws_message("alert"); //web socket to reflect baby alert-state in baby button in browser
+    return alert->send("Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'"); 
+}
+
 static esp_err_t print_alert_notification(String msg)
 {
-        Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
-        send_ws_message("alert"); //web socket to reflect baby alert-state in baby button in browser 
-        return ESP_OK;
+    Serial.println(msg);
+    return ESP_OK;
+}
+
+static esp_err_t send_alert_via_whatsapp(String msg)
+{
+      String url = "https://api.callmebot.com/whatsapp.php?phone=" + phoneNumber + "&apikey=" + apiKey + "&text=" + urlEncode(msg);    
+      HTTPClient http;
+      http.begin(url);
+
+      // Specify content-type header
+      http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+      
+      // Send HTTP POST request
+      int httpResponseCode = http.POST(url);
+      if (httpResponseCode == 200) {
+              // Free resources
+              http.end();
+              return ESP_OK;
+      } else {
+              Serial.println("Error sending the message");
+              Serial.print("HTTP response code: ");
+              Serial.println(httpResponseCode);
+              http.end();
+              return ESP_FAIL;
+      }
 }
 
 /*******************************************************************************
