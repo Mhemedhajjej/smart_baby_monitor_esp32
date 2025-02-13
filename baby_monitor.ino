@@ -14,18 +14,6 @@ const char* ssid = "SET_YOUR_WIFI_SSID_HERE";
 const char* password = "SET_YOUR_WIFI_PASSWORD_HERE";
 
 /******************************************************************* 
-******* GLOBALS **************************************************** 
-*******************************************************************/
-
-hw_timer_t *g_temp_hum_read_timer = NULL;
-EventGroupHandle_t g_event_group;
-EventBits_t g_event_bits;
-
-DHT dht(DHTPIN, DHTTYPE);
-
-String status;
-
-/******************************************************************* 
 ******* STATIC FUNCTIONS ******************************************* 
 *******************************************************************/
 
@@ -40,10 +28,48 @@ static void setup_external_sensors();
 static void temperature_sensor_setup();
 
 static String check_room_conditions(void);
-static void print_alert_notification(String msg);
+static esp_err_t alert_open_na(void);
+static esp_err_t print_alert_notification(String msg);
 
 static void IRAM_ATTR read_temp_hum_isr();
-void IRAM_ATTR sound_monitor_isr();
+static void IRAM_ATTR sound_monitor_isr();
+
+/******************************************************************* 
+******* GLOBALS **************************************************** 
+*******************************************************************/
+
+hw_timer_t *g_temp_hum_read_timer = NULL;
+EventGroupHandle_t g_event_group;
+EventBits_t g_event_bits;
+
+DHT dht(DHTPIN, DHTTYPE);
+
+String status;
+
+struct alert_ops_s {
+        esp_err_t (*open)(void);
+        esp_err_t (*send)(String message);
+} g_alert_ops[ALERT_METHOD_MAX] = {
+        [ALERT_METHOD_EMAIL] = {
+                .open = NULL,
+                .send = NULL
+        },
+        [ALERT_METHOD_WHATSAPP] = {
+                .open = NULL,
+                .send = NULL
+        },
+        [ALERT_METHOD_BLYNK_IOT] = {
+                .open = NULL,
+                .send = NULL
+        },
+        [ALERT_METHOD_LOG] = {
+                .open = alert_open_na,
+                .send = print_alert_notification,
+        }
+};
+
+alert_ops_t *alert = NULL;
+static uint8_t g_alert_driver = ALERT_METHOD_LOG;
 
 /******************************************************************* 
 ******* EXTERN FUNCTIONS ******************************************* 
@@ -98,6 +124,11 @@ void setup() {
         if (err == ESP_OK)
                 setup_external_sensors();
 
+        /* set alert notifier method */
+        if (err == ESP_OK) {
+                alert = &g_alert_ops[g_alert_driver];
+                alert->open();
+        }
 }
 
 void loop() 
@@ -116,10 +147,10 @@ void loop()
 
                 /* any limit violation -> send alert to user(s) */
                 if (status != "room conditions ok")
-                        print_alert_notification(status);
+                        alert->send(status);
         } else  if (g_event_bits & got_sound) {
                 /* baby crying -> sound monitor disabled to avoid continous interrupt trigger -> send alert to user(s)*/
-                print_alert_notification("Status: AWAKE \n");
+                alert->send("Status: AWAKE \n");
         } else if (g_event_bits & got_baby_happy) {
                 /* user notified via baby button in browser that baby is cared -> re-enable sound sensor */
                 Serial.println("mon left the range & baby is happy");
@@ -294,10 +325,16 @@ static String check_room_conditions(void)
         return ret;
 }
 
-static void print_alert_notification(String msg)
+static esp_err_t alert_open_na()
 {
-    Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
-    send_ws_message("alert"); //web socket to reflect baby alert-state in baby button in browser 
+    return ESP_OK;
+}
+
+static esp_err_t print_alert_notification(String msg)
+{
+        Serial.println( "Alert from BABY: \n" + msg + "Stream: 'http://" + WiFi.localIP().toString() + "'");
+        send_ws_message("alert"); //web socket to reflect baby alert-state in baby button in browser 
+        return ESP_OK;
 }
 
 /*******************************************************************************

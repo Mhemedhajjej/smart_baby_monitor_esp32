@@ -43,4 +43,12 @@ const int got_baby_happy = BIT2;
 #define SOUND_MONITOR_PIN         32
 #endif
 
+typedef enum alert_method_s {
+        ALERT_METHOD_EMAIL,
+        ALERT_METHOD_WHATSAPP,
+        ALERT_METHOD_BLYNK_IOT,
+        ALERT_METHOD_LOG,
+        ALERT_METHOD_MAX
+} alert_method_e;
+
 EventGroupHandle_t *get_event_group(void);
