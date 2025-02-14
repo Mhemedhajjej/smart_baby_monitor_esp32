@@ -6,6 +6,7 @@
 #include "camera_pins.h"
 #include <HTTPClient.h>
 #include <UrlEncode.h>
+#include <ESP_Mail_Client.h> // Include the ESP32 Mail Client library
 
 /******************************************************************* 
 ******* SYSTEM CONFIGURATIONS ************************************** 
@@ -19,6 +20,13 @@ const char* password = "SET_YOUR_WIFI_PASSWORD_HERE";
 const String phoneNumber = "SET_YOUR_WHATSAPP_NUMBER_HERE";
 const String apiKey = "SET_YOUR_API_KEY_HERE"; //got from callmebot.com
 
+
+// Email configuration
+const char* smtp_server = "smtp.gmail.com";
+const int smtp_port = 465;
+const char* email_sender_account = "SET_YOUR_SENDER_EMAIL_HERE";
+const char* email_sender_password = "SET_YOUR_SENDER_EMAIL_APP_PASSWORD";
+const char* email_recipient = "SET_YOUR_RECIPIENT_EMAIL_HERE";
 
 /******************************************************************* 
 ******* STATIC FUNCTIONS ******************************************* 
@@ -37,10 +45,10 @@ static void temperature_sensor_setup();
 static String check_room_conditions(void);
 
 static esp_err_t alert_open_na(void);
-
 static esp_err_t send_alert_notification(String msg);
 static esp_err_t print_alert_notification(String msg);
 static esp_err_t send_alert_via_whatsapp(String msg);
+static esp_err_t send_alert_via_email(String msg);
 
 static void IRAM_ATTR read_temp_hum_isr();
 static void IRAM_ATTR sound_monitor_isr();
@@ -62,8 +70,8 @@ struct alert_ops_s {
         esp_err_t (*send)(String message);
 } g_alert_ops[ALERT_METHOD_MAX] = {
         [ALERT_METHOD_EMAIL] = {
-                .open = NULL,
-                .send = NULL
+                .open = alert_open_na,
+                .send = send_alert_via_email
         },
         [ALERT_METHOD_WHATSAPP] = {
                 .open = alert_open_na,
@@ -80,7 +88,7 @@ struct alert_ops_s {
 };
 
 struct alert_ops_s *alert = NULL;
-static uint8_t g_alert_driver = ALERT_METHOD_WHATSAPP;
+static uint8_t g_alert_driver = ALERT_METHOD_EMAIL;
 
 /******************************************************************* 
 ******* EXTERN FUNCTIONS ******************************************* 
@@ -375,6 +383,44 @@ static esp_err_t send_alert_via_whatsapp(String msg)
               http.end();
               return ESP_FAIL;
       }
+}
+
+static esp_err_t send_alert_via_email(String msg)
+{
+        SMTPSession smtp;
+        Session_Config config;
+        SMTP_Message message;
+
+        config.server.host_name = smtp_server;
+        config.server.port = smtp_port;
+        config.login.email = email_sender_account;
+        config.login.password = email_sender_password;
+        config.login.user_domain = "";
+
+        // Set the sender email and name
+        message.sender.name = "Smart Baby Monitor";
+        message.sender.email = email_sender_account;
+
+        // Set the recipient email
+        message.addRecipient("User", email_recipient);
+
+        // Set the subject and message
+        message.subject = "Baby Monitor Alert";
+        message.text.content = msg.c_str();
+
+        //enable debugging
+        smtp.debug(1);
+
+        // Connect to the server
+        smtp.connect(&config);
+
+        // Send the email
+        if (!MailClient.sendMail(&smtp, &message)) {
+                Serial.println("Error sending Email, " + smtp.errorReason());
+                return ESP_FAIL;
+        }
+
+        return ESP_OK;
 }
 
 /*******************************************************************************
