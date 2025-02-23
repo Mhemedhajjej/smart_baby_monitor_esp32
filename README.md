@@ -11,6 +11,11 @@ This project demonstrates how to use the ESP32-CAM to monitor a baby’s room. T
   - **Sound Detector**: Detects sound and triggers an interrupt when sound is detected.
 - **HTTP Server**: Serves a web page with the camera stream.
 - **Alert System**: Monitors room conditions and prints alerts if conditions are not met.
+  - **Email Notifications**: Sends alert notifications to the user via Email SMTP method.
+  - **WhatsApp Notifications**: Sends alert notifications to the user via WhatsApp method.
+  - **Logging**: Logs alert notifications for future reference.
+- **WebSocket Support**: Enables data exchange between the ESP32 camera web server and clients.
+- **Baby Status Button**: Allows the user to notify the ESP32 to switch from alarm state back to monitor state once the baby is cared for.
 
 ## Usage
 
@@ -23,7 +28,7 @@ This project demonstrates how to use the ESP32-CAM to monitor a baby’s room. T
 ## Customization
 
 - Easily modify the code to add more sensors or trigger different actions based on sensor readings.
-- Easily modify format, style and interactivity of the web server by modifying html file and using python script to apply the changes into the C hex array used in the source code. 
+- Easily modify format, style and interactivity of the web server by modifying the HTML file and using a Python script to apply the changes into the C hex array used in the source code.
 
 ## Planned Features
 
